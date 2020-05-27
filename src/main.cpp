@@ -21,6 +21,8 @@ void Get_Volume(glm::vec3 v1, glm::vec3 v2, glm::vec3 v3, glm::vec3 v4);
 void Get_Area(glm::vec3 v1, glm::vec3 v2, glm::vec3 v3);
 glm::vec3 Reflection(glm::vec3 input_dir, glm::vec3 normal);
 void Get_Circumcircle(glm::vec3 v1, glm::vec3 v2, glm::vec3 v3);
+void convert_XYZ_to_rgb(glm::vec3 XYZ);
+void convert_rgb_to_XYZ(glm::vec3 RGB);
 
 
 
@@ -35,14 +37,14 @@ class Ray_intersection
 public:
 	Ray_intersection(glm::vec3 origin, glm::vec3 end);
 	~Ray_intersection();
-
-	glm::vec3 origin;
-	glm::vec3 end;
-	glm::vec3 dir;
-private:
 	bool Triangle_Intersection(glm::vec3 v1, glm::vec3 v2, glm::vec3 v3);
 	bool Cylinder_Intersection(glm::vec3 center1, glm::vec3 center2, float r);
 	bool Sphere_Intersection(glm::vec3 center, float r);
+
+private:
+	glm::vec3 origin;
+	glm::vec3 end;
+	glm::vec3 dir;
 	//bool Torus_Intersection(glm::vec3 center, float R, float r);
 };
 
@@ -72,7 +74,7 @@ bool Ray_intersection::Triangle_Intersection(glm::vec3 v1, glm::vec3 v2, glm::ve
 		return false;
 	}
 
-	float t = glm::dot(origin - end, n) / d;
+	float t = glm::dot(origin - v1, n) / d;
 	if (t < 0) return false;
 
 	float v = glm::dot(v3 - v1, e) / d;
@@ -143,17 +145,22 @@ bool Ray_intersection::Sphere_Intersection(glm::vec3 center, float r)
 /* Given a vertex position in world coordinate, transfer it into camera coordinate system */
 void Vertex_in_Camera(glm::vec3 vertex_pos, glm::vec3 Camera_pos, glm::vec3 Target_pos)
 {
-	glm::vec3 Camera_Dir = glm::normalize(Camera_pos - Target_pos);
-	glm::vec3 up = glm::vec3(1.0f, 1.0f, 0.0f) - Camera_Dir;
-	glm::vec3 Right = glm::normalize(glm::cross(up, Camera_Dir));
+	glm::vec3 Camera_Dir = glm::normalize(Target_pos - Camera_pos);
+	glm::vec3 up = glm::vec3(0, 1, 0);//glm::vec3(1.0f, 1.0f, 0.0f) - Camera_Dir;
+	glm::vec3 Right = glm::normalize(glm::cross(up , Camera_Dir));
 
-	glm::vec3 Up_vec = glm::cross(Camera_Dir, Right);
+	//String_cast(Right);
 
-	glm::mat4 perspective = glm::lookAt(Camera_pos, Target_pos, Up_vec); /* Camera pos, Look-at pos, up Vector */
+	glm::vec3 Up_vec = glm::normalize(glm::cross(Camera_Dir, Right));
+	glm::mat4 transformation = glm::mat4(glm::vec4(Right, 0.0f), glm::vec4(Up_vec, 0.0f), glm::vec4(Camera_Dir, 0.0f), glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
+	transformation = glm::transpose(transformation);
+	transformation = glm::translate(transformation, glm::vec3(-Camera_pos));
+	//glm::mat4 perspective = glm::lookAt(Camera_pos, Target_pos, Up_vec); /* Camera pos, Look-at pos, up Vector */
 
-	glm::vec3 P_cam = glm::vec3(perspective * glm::vec4(vertex_pos, 1));
+	//String_cast(transformation);
+	glm::vec3 P_cam = glm::vec3(transformation * glm::vec4(vertex_pos, 1));
 
-	
+	cout << "vertex in camera coordinates:";
 	String_cast(P_cam);
 }
 
@@ -207,8 +214,11 @@ void Model_Transform(glm::vec3 vertex_pos, glm::vec3 translation, glm::vec3 scal
 	
 	After_trans = glm::vec3(trans * glm::vec4(After_trans, 1.0f));
 	
-	String_cast(trans);
+	//String_cast(trans);
+	cout << "vertex in the world:";
 	String_cast(After_trans);
+
+	Vertex_in_Camera(After_trans, glm::vec3(8, 0, 0), glm::vec3(4, -3, 5));
 }
 
 
@@ -254,7 +264,7 @@ void Solid_Angle(glm::vec3 vertex_pos, glm::vec3 center, float r)
 void Get_Volume(glm::vec3 v1, glm::vec3 v2, glm::vec3 v3, glm::vec3 v4)
 {
 	glm::mat4 Matrix = glm::mat4(glm::vec4(1, v1), glm::vec4(1, v2), glm::vec4(1, v3), glm::vec4(1, v4));
-	String_cast(Matrix);
+	//String_cast(Matrix);
 
 	float Volume = 1.0f / 6.0f * glm::determinant(Matrix);
 
@@ -298,6 +308,25 @@ void Get_Circumcircle(glm::vec3 v1, glm::vec3 v2, glm::vec3 v3)
 
 }
 
+/* XYZ -> RGB */
+void convert_XYZ_to_rgb(glm::vec3 XYZ)
+{
+	glm::mat3 Conversion = glm::mat3(glm::vec3(0.41847f, -0.091169f, 0.00092090f), glm::vec3(-0.15866f, 0.25243f, -0.0025498f), glm::vec3(-0.082835f, 0.015708f, 0.17860f));
+	glm::vec3 RGB = Conversion * XYZ;
+
+	cout << "RGB:";
+	String_cast(RGB);
+}
+
+/* RGB->XYZ */
+void convert_RGB_to_XYZ(glm::vec3 RGB)
+{
+	glm::mat3 Conversion = glm::mat3(glm::vec3(0.49000f, 0.17697f, 0.0000f), glm::vec3(0.31000f, 0.81240f, 0.010000f), glm::vec3(0.20000f, 0.010630f, 0.99000f));
+	glm::vec3 XYZ = Conversion * RGB;
+	cout << "XYZ";
+	String_cast(XYZ);
+}
+
 int main()
 {
 	/* Given a vertex position in world coordinate, transfer it into camera coordinate system */
@@ -305,21 +334,25 @@ int main()
 	glm::vec3 P , A , B;
 	P = glm::vec3(1, 1, 2);
 	
-	Vertex_in_Camera(P, glm::vec3(1, 0, 0), glm::vec3(3, 3, 3));
+	//Vertex_in_Camera(P, glm::vec3(1, 0, 0), glm::vec3(3, 3, 3));
 	
 	A = glm::vec3(1, 1, 2);
 	B = glm::vec3(0, 2, 1);
+
+
 	/* Using Model Matrix to transform the vertex */
 	Model_Transform(A, glm::vec3(1, -1, 1), glm::vec3(2.0f), glm::vec3(1.0f, 0.0f, 0.0f), 1.0f/6.0f * PI); /* Be aware that int / int gets int */
-	Model_Transform(B, glm::vec3(1, -1, 1), glm::vec3(2.0f), glm::vec3(1.0f, 0.0f, 0.0f), 1.0f / 6.0f * PI);
+	//Model_Transform(B, glm::vec3(1, -1, 1), glm::vec3(2.0f), glm::vec3(1.0f, 0.0f, 0.0f), 1.0f / 6.0f * PI);
 	/* Calculate the Phong lighting model especially focus on the calculation of reflect vector */
-	Phong_Lighting(glm::vec3(1, 0, 0), glm::vec3(0, 1, 1), glm::vec3(0, 0, 1), glm::vec3(1, 1, 1));
+	//Phong_Lighting(glm::vec3(1, 0, 0), glm::vec3(0, 1, 1), glm::vec3(0, 0, 1), glm::vec3(1, 1, 1));
 
 	Get_Volume(glm::vec3(0, 0, 0), glm::vec3(1, 0, 0), glm::vec3(0, 1, 0), glm::vec3(0, 0, 1));
 	Get_Area(glm::vec3(0, 0, 1), glm::vec3(1, 0, 0), glm::vec3(0, 1, 0));
 
-	Get_Circumcircle(glm::vec3(0, 0, 0), glm::vec3(1, 0, 0), glm::vec3(0, 1, 0));
+	Get_Circumcircle(glm::vec3(3, 2, 0), glm::vec3(5, 6, 0), glm::vec3(8, 7, 0));
 
+
+	String_cast(glm::normalize(glm::cross(glm::vec3(0, 1, 0), glm::vec3(-4, -3, 5))));
 	system("Pause");
 }
 
