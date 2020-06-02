@@ -232,7 +232,7 @@ void Phong_Lighting(glm::vec3 View_dir, glm::vec3 Light_dir, glm::vec3 Normal, g
 	glm::vec3 ambient_color = glm::vec3(0.1f);
 
 	/* Calculate the diffuse coefficient */
-	float diffuse = glm::dot(Normal, -Light_dir);
+	float diffuse = std::max(glm::dot(Normal, -Light_dir),0.0f);
 	glm::vec3 diffuse_color = Color * diffuse;
 
 	/* Calculate the Reflection Vector of specular light */
